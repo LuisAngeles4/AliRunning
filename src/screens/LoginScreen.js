@@ -1,3 +1,4 @@
+// src/screens/LoginScreen.js
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { auth } from "../firebaseConfig";
@@ -18,18 +19,20 @@ import AppButton from "../components/AppButton";
 import ErrorMessage from "../components/ErrorMessage";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function LoginScreen({navigation}) {
+// ⬇️ nuevo: guardar el usuario activo para el historial por cuenta
+import { setCurrentUser } from "../utils/storage";
+
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Fuente poppins
-
+  // Fuente Poppins
   let [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_700Bold,
-    Poppins_700Bold_Italic
+    Poppins_700Bold_Italic,
   });
 
   if (!fontsLoaded) {
@@ -42,25 +45,25 @@ export default function LoginScreen({navigation}) {
       return;
     }
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.replace('MainTabs')
-
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const u = cred?.user;
+      // Guarda el id de la cuenta activa (usa uid estable de Firebase)
+      await setCurrentUser(u?.uid || email.toLowerCase());
       setError("");
+      navigation.replace("MainTabs");
     } catch (err) {
       switch (err.code) {
         case "auth/user-not-found":
           setError("Usuario no registrado");
           console.log("error usuario no registrado");
-
           break;
-
         case "auth/wrong-password":
           setError("Contraseña incorrecta");
           console.log("error usuario contraseña incorrecta");
           break;
         default:
           setError("Error al iniciar sesión");
-          console.log("error al iniciar sesion");
+          console.log("error al iniciar sesion", err?.code || err?.message);
       }
     }
   };
@@ -71,42 +74,45 @@ export default function LoginScreen({navigation}) {
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const u = cred?.user;
+      // También fijamos el usuario activo tras registrarse
+      await setCurrentUser(u?.uid || email.toLowerCase());
       setError("");
+      // Opcional: entrar directo a la app
+      navigation.replace("MainTabs");
     } catch (err) {
       switch (err.code) {
         case "auth/email-already-in-use":
           setError("Este usuario ya existe");
           console.log("error usuario ya existe");
           break;
-
         case "auth/invalid-email":
           setError("Correo inválido");
           console.log("correo invalido");
           break;
-
         case "auth/weak-password":
           setError("La contraseña debe tener al menos 6 caracteres");
-          console.log("error contraseña");
+          console.log("error contraseña débil");
           break;
-
         default:
           setError("Error al registrarse");
-          console.log("error al registrarse");
+          console.log("error al registrarse", err?.code || err?.message);
       }
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
+      {/* Logo (opcional) */}
       <Image
-        // source={require("../assets/logo.png")} // crea tu logo en /assets/logo.png
+        // source={require("../assets/logo.png")}
         // style={styles.logo}
         resizeMode="contain"
       />
 
       <Text style={styles.title}>BIENVENIDO</Text>
+
       <InputField
         value={email}
         onChangeText={(text) => setEmail(text.toLowerCase())}
@@ -149,7 +155,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-  
   },
   logo: {
     width: 120,

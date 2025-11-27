@@ -58,22 +58,29 @@ export function analyzeRuns(allRuns) {
 
   // Métricas base últimas 5
   const paces = last5.map(toMinPerKm);
-  const kms = last5.map((r) => r.distanceM / 1000);
-  const loads = last5.map((r, i) => kms[i] * intensityFactor(paces[i]));
-  const totalKm5 = kms.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
-  const avgPace5 = paces.reduce((a, b) => a + (isFinite(b) ? b : 0), 0) / (paces.filter(isFinite).length || 1);
-  const bestPace = Math.min(...paces);
-  const avgIntensityLabel = intensityLabel(avgPace5);
+const kms = last5.map((r) => r.distanceM / 1000);
+const loads = last5.map((r, i) => kms[i] * intensityFactor(paces[i]));
+const totalKm5 = kms.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
+
+const finitePaces = paces.filter((p) => Number.isFinite(p));
+const avgPace5 = finitePaces.length
+  ? finitePaces.reduce((a, b) => a + b, 0) / finitePaces.length
+  : Infinity;
+const bestPace = finitePaces.length ? Math.min(...finitePaces) : Infinity;
+const avgIntensityLabel = intensityLabel(avgPace5);
+
 
   // Gaps (separación en días entre sesiones)
-  const gaps = [];
-  for (let i = 0; i < last5.length - 1; i++) {
-    gaps.push(daysBetween(last5[i].date, last5[i + 1].date));
-  }
-  const avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : NaN;
+const gaps = [];
+for (let i = 0; i < last5.length - 1; i++) {
+  gaps.push(daysBetween(last5[i].date, last5[i + 1].date));
+}
+const avgGap = gaps.length >= 1 ? gaps.reduce((a, b) => a + b, 0) / gaps.length : NaN;
+
 
   // Nivel actual por ritmo promedio de 5
-  const level = levelFromPace(avgPace5);
+const level = finitePaces.length ? levelFromPace(avgPace5) : "Principiante";
+
 
   // Carga aguda/crónica (ACWR) aproximada
   const acute = runs

@@ -73,13 +73,16 @@ export default function ProfileScreen() {
     return `${min}:${String(sec).padStart(2, "0")}`;
   };
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Login" }],
-    });
-  };
+const handleLogout = async () => {
+  // Borra SOLO lo relacionado con sesión, NO las carreras
+  await AsyncStorage.multiRemove([
+    "access_token",
+    "refresh_token",
+    "user_profile",
+    "current_user_id", // opcional: así “olvidas” qué usuario quedó activo
+  ]);
+  navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+};
 
   const handleChallenge = () => {
     Alert.alert(
